@@ -1,0 +1,23 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  gVision.cpp
+gVision.cpp(50): warning C4800: 'int' : forcing value to bool 'true' or 'false' (performance warning)
+gVision.cpp(57): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+gVision.cpp(111): warning C4309: 'argument' : truncation of constant value
+gVision.cpp(121): warning C4244: 'initializing' : conversion from 'int' to 'float', possible loss of data
+gVision.cpp(128): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+gVision.cpp(151): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+gVision.cpp(152): warning C4244: 'initializing' : conversion from 'float' to 'int', possible loss of data
+gVision.cpp(154): warning C4800: 'int' : forcing value to bool 'true' or 'false' (performance warning)
+gVision.cpp(158): warning C4800: 'int' : forcing value to bool 'true' or 'false' (performance warning)
+gVision.cpp(162): warning C4800: 'int' : forcing value to bool 'true' or 'false' (performance warning)
+gVision.cpp(181): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+gVision.cpp(182): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+  safe_move.cpp
+safe_move.cpp(137): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+safe_move.cpp(138): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+safe_move.cpp(139): warning C4244: 'initializing' : conversion from 'double' to 'float', possible loss of data
+     Creating library C:\Users\dustindam\Desktop\gVision\gVisionSource\Release\gVision.lib and object C:\Users\dustindam\Desktop\gVision\gVisionSource\Release\gVision.exp
+  Generating code
+  Finished generating code
+  gVision.vcxproj -> C:\Users\dustindam\Desktop\gVision\gVisionSource\Release\gVision.dll
