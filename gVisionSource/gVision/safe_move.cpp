@@ -10,16 +10,16 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include "utils.h"
 
 #define MAX_PATH_LENGTH 100
 
-extern "C" __declspec(dllexport) int __cdecl get_safe_path(const char* filename,
-                                                           const char* start_label,
-                                                           const char* end_label,
-                                                           int* num_points,
-                                                           float* coordinate_list);
-
-
+extern "C" __declspec(dllexport) 
+int __cdecl get_safe_path(const char* filename,
+                          const char* start_label,
+                          const char* end_label,
+                          int* num_points,
+                          float* coordinate_list);
 
 class Point {
 public:
@@ -94,23 +94,6 @@ public:
     }
 };
 
-
-std::vector<std::string> &split(const std::string &s, char delim,
-    std::vector<std::string> &elems) {
-    std::stringstream ss(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-    return elems;
-}
-
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, elems);
-    return elems;
-}
-
 void parse_points(std::string filename,
     points_t& points,
     edges_t& edges) {
@@ -134,9 +117,9 @@ void parse_points(std::string filename,
                     continue;
                 }
                 std::string label = tokens[1];
-                float x = std::atof(tokens[2].c_str());
-                float y = std::atof(tokens[3].c_str());
-                float z = std::atof(tokens[4].c_str());
+                float x = (float)std::atof(tokens[2].c_str());
+                float y = (float)std::atof(tokens[3].c_str());
+                float z = (float)std::atof(tokens[4].c_str());
                 points.insert(std::pair<std::string, Point>(label, Point(label, x, y, z)));
             }
             else if (tokens[0] == "edg") {  // Parse edge
