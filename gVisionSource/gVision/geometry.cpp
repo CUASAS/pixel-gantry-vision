@@ -28,7 +28,7 @@ extern "C" __declspec(dllexport)
 void to_local_coords(double  global_x, double  global_y, double  global_z,
                      double  offset_x, double  offset_y, double  offset_z,
 					 double  pitch,    double  roll,     double  yaw,
-                     double* local_x,  double* local_y,  double* local_z) ;
+                     double* local_x,  double* local_y,  double* local_z);
 
 extern "C" __declspec(dllexport) 
 const char* test_geom_1(const char* fname);

@@ -1,5 +1,9 @@
-// gVision.cpp : Defines the exported functions for the DLL application.
-//
+/* gVision.cpp
+ * Routines directly related to the vision system on the gantry including
+ *   - Fiducial recognition/location
+ *   - Focus calculation
+ *   - Focus curve fitting
+ */
 
 #include "stdafx.h"
 #include "utils.h"
@@ -11,8 +15,8 @@
 #include <string>
 #include <vector>
 #include <set>
-
-//#define GVISION_LOGGING
+#include <cmath>
+#include <limits>
 
 extern "C" __declspec(dllexport) int __cdecl calc_focus(char* img,   int imgLineWidth,
                                                       int imgWidth, int imgHeight,
@@ -30,9 +34,11 @@ extern "C" __declspec(dllexport) int __cdecl find_fiducial(char* img, int imgLin
                                                            float* coords);
 
 
-extern "C" __declspec(dllexport) double __cdecl fit_focus(int num_measurements,
-														  double* focus_values,
-                                                          double* heights);
+extern "C" __declspec(dllexport) void __cdecl fit_focus(unsigned int num_measurements,
+                                                        double* focus_values,
+                                                        double* heights,
+                                                        double* mean,
+                                                        double* stdev);
 
 
 void show(cv::Mat img, int interactive){
@@ -49,7 +55,7 @@ __declspec(dllexport) int __cdecl get_focus(char* imgPtr, int imgLineWidth,
                                             int imgWidth, int imgHeight,
                                             int interactive,
                                             float* focus){
-	cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     show(img, interactive);
 
     cv::Mat lap;
@@ -166,7 +172,7 @@ int __cdecl get_fiducial(char* imgPtr, int imgLineWidth,
 
     std::stringstream ss;
     ss << "Fiducials Found: " << contours.size() << std::endl;
-	log(ss.str());
+    log(ss.str());
 
     for (unsigned int i = 0; i < contours.size(); i++){
         std::vector<cv::Point> fidContour = contours[i];
@@ -180,23 +186,62 @@ int __cdecl get_fiducial(char* imgPtr, int imgLineWidth,
         *(coords + 2 * i + 1) = y;
 
         ss << "x:" << x << ", y:" << y << std::endl;
-		log(ss);
+        log(ss);
     }
 
     return 0;
 }
 
 __declspec(dllexport)
-double __cdecl fit_focus(int num_measurements,
-                         double* focus_values,
-                         double* heights){
-    double max_focus = 0;
-    double max_height = -1;
-    for (int i = 0; i < num_measurements; i++) {
-        if (focus_values[i] > max_focus) {
-            max_focus = focus_values[i];
-            max_height = heights[i];
-        }
+void __cdecl fit_focus(unsigned int num_measurements,
+                       double* focus_values,
+                       double* heights,
+                       double* mean,
+                       double* stdev){
+    std::stringstream ss;
+    ss << "Fitting Focus of " << num_measurements << " datapoints\n";
+    ss << "height\tfocus\n";
+    for(unsigned int i=0; i<num_measurements; i++){
+        ss << heights[i] << "\t" << focus_values[i] << std::endl;
     }
-    return max_height;
+    log(ss);
+    if (num_measurements==0){
+            *mean  = std::numeric_limits<double>::quiet_NaN();
+            *stdev = std::numeric_limits<double>::quiet_NaN();
+            return;
+    }
+    if (num_measurements==1){
+            *mean  = heights[0];
+            *stdev = 0;
+            return;
+    }
+    std::vector<double> means;
+    std::vector<double> vals_adj;
+
+    double sum = 0;
+    for(unsigned int i=0; i<num_measurements; i++){
+        vals_adj.push_back(log(focus_values[i]));
+        sum += vals_adj[i];
+    }
+    //Calculate leave-one-out means
+    for(unsigned int j=0; j<num_measurements; j++){
+        means.push_back(0);
+        for(unsigned int i=0; i<num_measurements; i++){
+            if(i!=j) means[j] += heights[i]*vals_adj[i];
+        }
+        means[j] = means[j] / (sum-vals_adj[j]);
+    }
+
+    //Calculate mean and variance of means
+    double sumSquares =0;
+    sum = 0;
+    for(unsigned int i=0; i< num_measurements; i++){
+        sumSquares += means[i]*means[i];
+        sum += means[i];
+    }
+    *mean  = sum/num_measurements;
+    *stdev = sqrt(sumSquares - sum*sum)/num_measurements; 
+    ss << "\tfound mean  =" << *mean << std::endl;
+    ss << "\tfound stdev =" << *stdev << std::endl;
+    log(ss);
 }
