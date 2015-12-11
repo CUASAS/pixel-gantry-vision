@@ -1,3 +1,5 @@
 # Editor swap files
 *.swp
 *~
+#Labview Local Files
+*.aliases

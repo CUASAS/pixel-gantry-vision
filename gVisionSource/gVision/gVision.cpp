@@ -51,7 +51,7 @@ void show(cv::Mat img, int interactive){
 
 //#define INTERACTIVE
 
-__declspec(dllexport) int __cdecl get_focus(char* imgPtr, int imgLineWidth,
+__declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
                                             int imgWidth, int imgHeight,
                                             int interactive,
                                             float* focus){
