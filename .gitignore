@@ -3,3 +3,9 @@
 *~
 #Labview Local Files
 *.aliases
+
+#Labview builds folder
+lv_builds/
+
+#Copy of Binaries
+gVisionLV/gVisionBin/*.dll
