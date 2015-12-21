@@ -140,8 +140,12 @@ void parse_points(std::string filename,
 }
 
 /* find_optimum_path
-* Computes an optimum path from start_pt to end_point using Dijkstra's
-* Algorithm.
+ * Computes an optimum path from start_pt to end_point using Dijkstra's
+ * Algorithm.
+ * Error Codes:
+ * 0 : Completed Successfully
+ * 1 : Starting position undefined(empty string)
+ * 2 : Starting or ending position not in config file
 */
 Path calculate_optimum_path(std::string start_pt_label,
     std::string end_pt_label,
@@ -181,8 +185,7 @@ void dump_points(points_t& points, edges_t& edges) {
     for (p_it = points.begin(); p_it != points.end(); ++p_it) {
         Point p = p_it->second;
         std::cout << p.label << " " << p.x << " " << p.y << " " << p.z;
-        std::set<std::string>::iterator e_it;
-        for (e_it = edges[p_it->first].begin(); e_it != edges[p_it->first].end();++e_it) {
+        for (auto e_it = edges[p_it->first].begin(); e_it != edges[p_it->first].end();++e_it) {
             if (e_it == edges[p_it->first].begin()) std::cout << "  -> " << *e_it;
             else std::cout << ", " << *e_it;
         }
@@ -197,17 +200,26 @@ __declspec(dllexport) int __cdecl get_safe_path(const char* filename,
     int& N = *num_points;
     std::string from(start_label);
     std::string to(end_label);
+	if (from == "") return 1; // Initial position undefined
 
     points_t points;
     edges_t edges;
     parse_points(filename, points, edges);
-    dump_points(points, edges);
+	
+	bool from_found = false, to_found = false;
+	for(auto it = points.begin(); it != points.end(); it++){
+		std::string pos_name = (*it).first;
+		if(pos_name == from) from_found = true;
+		if(pos_name == to) to_found = true;
+	}
+	if (!(from_found && to_found)) return 2; // Inition or Final position not in config file
+
+
     Path optimum_path = calculate_optimum_path(from, to, points, edges);
     N = optimum_path.points.size();
-    if (N > MAX_PATH_LENGTH) return -1;
+    if (N > MAX_PATH_LENGTH) return 1;
     int i = 0;
-    std::vector<std::string>::iterator it;
-    for (it = optimum_path.points.begin(); it != optimum_path.points.end(); ++it) {
+    for (auto it = optimum_path.points.begin(); it != optimum_path.points.end(); ++it) {
         Point pt = points[*it];
         *(coordinate_list + i * 3 + 0) = pt.x;
         *(coordinate_list + i * 3 + 1) = pt.y;
