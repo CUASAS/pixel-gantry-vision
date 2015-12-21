@@ -41,9 +41,6 @@
     <ClCompile Include="safe_move.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="geometry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

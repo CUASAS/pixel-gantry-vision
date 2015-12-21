@@ -35,7 +35,7 @@
 				<Property Name="Bld_excludedDirectory[0].pathType" Type="Str">relativeToAppDir</Property>
 				<Property Name="Bld_excludedDirectory[1]" Type="Path">resource/objmgr</Property>
 				<Property Name="Bld_excludedDirectory[1].pathType" Type="Str">relativeToAppDir</Property>
-				<Property Name="Bld_excludedDirectory[2]" Type="Path">/C/Users/dustindam/Documents/LabVIEW Data/InstCache</Property>
+				<Property Name="Bld_excludedDirectory[2]" Type="Path">/C/Users/husker/Documents/LabVIEW Data/InstCache</Property>
 				<Property Name="Bld_excludedDirectory[3]" Type="Path">instr.lib</Property>
 				<Property Name="Bld_excludedDirectory[3].pathType" Type="Str">relativeToAppDir</Property>
 				<Property Name="Bld_excludedDirectory[4]" Type="Path">user.lib</Property>
@@ -50,7 +50,7 @@
 				<Property Name="Destination[1].destName" Type="Str">Support Directory</Property>
 				<Property Name="Destination[1].path" Type="Path">../lv_builds/NI_AB_PROJECTNAME/gVision API/data</Property>
 				<Property Name="DestinationCount" Type="Int">2</Property>
-				<Property Name="Source[0].itemID" Type="Str">{B83777DC-0698-41A2-AD41-EC3EF3A715CC}</Property>
+				<Property Name="Source[0].itemID" Type="Str">{8CB7F489-B624-4E79-BEFA-60C854A4BC0B}</Property>
 				<Property Name="Source[0].type" Type="Str">Container</Property>
 				<Property Name="Source[1].destinationIndex" Type="Int">0</Property>
 				<Property Name="Source[1].itemID" Type="Ref">/My Computer/gVision/gVision.lvlib</Property>
