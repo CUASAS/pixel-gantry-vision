@@ -20,7 +20,6 @@
 
 extern "C" __declspec(dllexport) int __cdecl calc_focus(char* img,   int imgLineWidth,
                                                       int imgWidth, int imgHeight,
-                                                      int interactive,
                                                       float* focus);
 extern "C" __declspec(dllexport) int __cdecl find_fiducial(char* img, int imgLineWidth,
                                                            int imgWidth, int imgHeight,
@@ -49,14 +48,11 @@ void show(cv::Mat img, int interactive){
     cv::destroyWindow("MyWindow");
 }
 
-//#define INTERACTIVE
 
 __declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
                                             int imgWidth, int imgHeight,
-                                            int interactive,
                                             float* focus){
     cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
-    show(img, interactive);
 
     cv::Mat lap;
     cv::Laplacian(img, lap, CV_32F, 5, .01);
@@ -138,7 +134,7 @@ std::vector<std::vector<cv::Point>> get_contours(cv::Mat &img, float sizeMin, fl
 
 #define NUM_FIDS 10
 __declspec(dllexport)
-int __cdecl get_fiducial(char* imgPtr, int imgLineWidth,
+int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
                          int imgWidth, int imgHeight,
                          float shrinkFactor,
                          int dilateSize,
