@@ -14,9 +14,12 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <utility>
 #include <set>
 #include <cmath>
 #include <limits>
+
+using namespace std;
 
 extern "C" __declspec(dllexport) int __cdecl calc_focus(char* img,   int imgLineWidth,
                                                         int imgWidth, int imgHeight,
@@ -114,19 +117,38 @@ void do_dilate(cv::Mat &img, int size){
     dilate(img, img, element);
 }
 
-std::vector<std::vector<cv::Point>> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float arMin, float arMax){
+struct ContourData{
+	ContourData::ContourData(){}
+	ContourData::ContourData(float area, float ar){
+		this->area = area;
+		this->ar = ar;
+	}
+	float area;
+	float ar;
+};
+
+typedef pair<vector<cv::Point>,ContourData> contour_t;
+
+vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float arMin, float arMax){
     float pixels = (float)img.rows * img.cols;
-    std::vector<std::vector<cv::Point>> contours;
-    std::vector<cv::Vec4i> hierarchy;
+    vector<vector<cv::Point>> contours;
+    vector<cv::Vec4i> hierarchy;
     findContours(img.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
 
-    std::vector<std::vector<cv::Point>> passContours;
+    vector<contour_t> passContours;
+	stringstream ss;
     for (unsigned int i = 0; i < contours.size(); i++){
-        float size = (float)(contourArea(contours[i]) / pixels);
+        float area = (float)(contourArea(contours[i]) / pixels);
         cv::RotatedRect rr = minAreaRect(contours[i]);
         float ar = float(rr.size.width) / rr.size.height;
-        if ((size > sizeMin && size < sizeMax) && (ar > arMin && ar < arMax)){
-            passContours.push_back(contours[i]);
+		if(ar>1) ar = 1.0f/ar;
+		ss << "area: " << area << ", ar: " << ar << endl << endl;
+		log(ss);
+        if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)){
+			contour_t c;
+			c.first = contours[i];
+			c.second = ContourData(area,ar);
+            passContours.push_back(c);
         }
     }
     return passContours;
@@ -151,29 +173,29 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
     int rows = (int)(img.rows / shrinkFactor);
     int cols = (int)(img.cols / shrinkFactor);
     cv::Size s(cols, rows);
-    show(img, interactive);
     resize(img, img, s);
     //show(img, interactive);
     //doBlur(img, dilateSize);
-    show(img, interactive);
     do_kmeans(img, colorGroups);
+    show(img, interactive);
 
     do_dilate(img, dilateSize);
     show(img, interactive);
 
-    std::vector<std::vector<cv::Point>> contours = get_contours(img, sizeMin, sizeMax, arMin, arMax);
+    vector<contour_t> contours = get_contours(img, sizeMin, sizeMax, arMin, arMax);
     if (contours.size() > NUM_FIDS){
         contours.resize(NUM_FIDS);
     }
     *numFiducials = contours.size();
 
 
-    std::stringstream ss;
-    ss << "Fiducials Found: " << contours.size() << std::endl;
+    stringstream ss;
+    ss << "Fiducials Found: " << contours.size() << endl;
     log(ss.str());
 
     for (unsigned int i = 0; i < contours.size(); i++){
-        std::vector<cv::Point> fidContour = contours[i];
+        vector<cv::Point> fidContour = contours[i].first;
+		ContourData c = contours[i].second;
 
         cv::Moments mu = moments(fidContour, false);
         //cv::Point2f centroid(mu.m10 / mu.m00, mu.m01 / mu.m00);
@@ -183,7 +205,8 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
         *(coords + 2 * i) = x;
         *(coords + 2 * i + 1) = y;
 
-        ss << "x:" << x << ", y:" << y << std::endl;
+        ss << "x:" << x << ", y:" << y << endl;
+		ss << "area: " << c.area << ", ar: " << c.ar << endl << endl;
         log(ss);
     }
 
@@ -220,16 +243,16 @@ void __cdecl fit_focus(unsigned int num_measurements,
                        double* heights,
                        double* mean,
                        double* stdev){
-    std::stringstream ss;
+    stringstream ss;
     ss << "Fitting Focus of " << num_measurements << " datapoints\n";
     ss << "height\tfocus\n";
     for(unsigned int i=0; i<num_measurements; i++){
-        ss << heights[i] << "\t" << focus_values[i] << std::endl;
+        ss << heights[i] << "\t" << focus_values[i] << endl;
     }
     log(ss);
     if (num_measurements==0){
-            *mean  = std::numeric_limits<double>::quiet_NaN();
-            *stdev = std::numeric_limits<double>::quiet_NaN();
+            *mean  = numeric_limits<double>::quiet_NaN();
+            *stdev = numeric_limits<double>::quiet_NaN();
             return;
     }
     if (num_measurements==1){
@@ -237,8 +260,8 @@ void __cdecl fit_focus(unsigned int num_measurements,
             *stdev = 0;
             return;
     }
-    std::vector<double> means;
-    std::vector<double> vals_adj;
+    vector<double> means;
+    vector<double> vals_adj;
 
     double sum = 0;
     for(unsigned int i=0; i<num_measurements; i++){
@@ -263,7 +286,7 @@ void __cdecl fit_focus(unsigned int num_measurements,
     }
     *mean  = sum/num_measurements;
     *stdev = sqrt(sumSquares - sum*sum)/num_measurements; 
-    ss << "\tfound mean  =" << *mean << std::endl;
-    ss << "\tfound stdev =" << *stdev << std::endl;
+    ss << "\tfound mean  =" << *mean << endl;
+    ss << "\tfound stdev =" << *stdev << endl;
     log(ss);
 }
