@@ -19,8 +19,8 @@
 #include <limits>
 
 extern "C" __declspec(dllexport) int __cdecl calc_focus(char* img,   int imgLineWidth,
-                                                      int imgWidth, int imgHeight,
-                                                      float* focus);
+                                                        int imgWidth, int imgHeight,
+                                                        float* focus);
 extern "C" __declspec(dllexport) int __cdecl find_fiducial(char* img, int imgLineWidth,
                                                            int imgWidth, int imgHeight,
                                                            float shrinkFactor,
@@ -133,17 +133,19 @@ std::vector<std::vector<cv::Point>> get_contours(cv::Mat &img, float sizeMin, fl
 }
 
 #define NUM_FIDS 10
-__declspec(dllexport)
-int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
-                         int imgWidth, int imgHeight,
-                         float shrinkFactor,
-                         int dilateSize,
-                         float sizeMin, float sizeMax,
-                         float arMin, float arMax,
-                         int colorGroups,
-                         int interactive,
-                         int* numFiducials,
-                         float* coords){ //coords must be a 2*NUM_FIDS element float array
+#define MAX_ATTEMPTS 5
+
+int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
+                          int imgWidth, int imgHeight,
+                          float shrinkFactor,
+                          int dilateSize,
+                          float sizeMin, float sizeMax,
+                          float arMin, float arMax,
+                          int colorGroups,
+                          int interactive,
+                          int* numFiducials,
+                          float* coords)  //coords must be a 2*NUM_FIDS element float array
+{
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
     int rows = (int)(img.rows / shrinkFactor);
@@ -187,6 +189,30 @@ int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
 
     return 0;
 }
+
+__declspec(dllexport)
+int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
+                         int imgWidth, int imgHeight,
+                         float shrinkFactor,
+                         int dilateSize,
+                         float sizeMin, float sizeMax,
+                         float arMin, float arMax,
+                         int colorGroups,
+                         int interactive,
+                         int* numFiducials,
+                         float* coords)
+{
+    int ret;
+    for(unsigned int i=0; i<MAX_ATTEMPTS; i++){
+        ret = attempt_find_fiducial(imgPtr, imgLineWidth,
+                                    imgWidth, imgHeight, shrinkFactor, dilateSize,
+                                    sizeMin, sizeMax, arMin, arMax,
+                                    colorGroups, interactive, numFiducials, coords);
+        if (*numFiducials != 0) return ret;
+    }
+    return ret;
+}
+
 
 __declspec(dllexport)
 void __cdecl fit_focus(unsigned int num_measurements,
