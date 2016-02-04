@@ -141,7 +141,7 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
         float area = (float)(contourArea(contours[i]) / pixels);
         cv::RotatedRect rr = minAreaRect(contours[i]);
         float ar = float(rr.size.width) / rr.size.height;
-		if(ar>1) ar = 1.0f/ar;
+		if(ar<1) ar = 1.0f/ar;
 		ss << "area: " << area << ", ar: " << ar << endl << endl;
 		log(ss);
         if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)){
