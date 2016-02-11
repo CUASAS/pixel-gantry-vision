@@ -31,6 +31,7 @@ extern "C" __declspec(dllexport) int __cdecl find_fiducial(char* img, int imgLin
                                                            float sizeMin, float sizeMax,
                                                            float arMin, float arMax,
                                                            int colorGroups,
+														   int maxAttempts,
                                                            int interactive,
                                                            int* numFiducials,
                                                            float* coords);
@@ -155,7 +156,6 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
 }
 
 #define NUM_FIDS 10
-#define MAX_ATTEMPTS 5
 
 int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
                           int imgWidth, int imgHeight,
@@ -222,11 +222,12 @@ int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
                          float arMin, float arMax,
                          int colorGroups,
                          int interactive,
+						 int maxAttempts,
                          int* numFiducials,
                          float* coords)
 {
     int ret;
-    for(unsigned int i=0; i<MAX_ATTEMPTS; i++){
+    for(unsigned int i=0; i<maxAttempts; i++){
         ret = attempt_find_fiducial(imgPtr, imgLineWidth,
                                     imgWidth, imgHeight, shrinkFactor, dilateSize,
                                     sizeMin, sizeMax, arMin, arMax,
