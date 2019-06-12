@@ -7,8 +7,9 @@
 
 #include "stdafx.h"
 #include "utils.h"
+#include "gVision.h"
 #include "opencv2/opencv.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include <fstream>
@@ -20,29 +21,6 @@
 #include <limits>
 
 using namespace std;
-
-extern "C" __declspec(dllexport) int __cdecl calc_focus(char* img,   int imgLineWidth,
-                                                        int imgWidth, int imgHeight,
-                                                        float* focus);
-extern "C" __declspec(dllexport) int __cdecl find_fiducial(char* img, int imgLineWidth,
-                                                           int imgWidth, int imgHeight,
-                                                           float shrinkFactor,
-                                                           int dilateSize,
-                                                           float sizeMin, float sizeMax,
-                                                           float arMin, float arMax,
-                                                           int colorGroups,
-														   int maxAttempts,
-                                                           int interactive,
-                                                           int* numFiducials,
-                                                           float* coords);
-
-
-extern "C" __declspec(dllexport) void __cdecl fit_focus(unsigned int num_measurements,
-                                                        double* focus_values,
-                                                        double* heights,
-                                                        double* mean,
-                                                        double* stdev);
-
 
 void show(cv::Mat img, int interactive){
     if (interactive==0) return;
@@ -134,7 +112,7 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
     float pixels = (float)img.rows * img.cols;
     vector<vector<cv::Point>> contours;
     vector<cv::Vec4i> hierarchy;
-    findContours(img.clone(), contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+    findContours(img.clone(), contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     vector<contour_t> passContours;
 	stringstream ss;
@@ -168,6 +146,7 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
                           int* numFiducials,
                           float* coords)  //coords must be a 2*NUM_FIDS element float array
 {
+	std::stringstream ss;
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
     int rows = (int)(img.rows / shrinkFactor);
@@ -176,8 +155,10 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
     resize(img, img, s);
     //show(img, interactive);
     //doBlur(img, dilateSize);
+
     do_kmeans(img, colorGroups);
     show(img, interactive);
+
 
     do_dilate(img, dilateSize);
     show(img, interactive);
@@ -188,8 +169,6 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
     }
     *numFiducials = contours.size();
 
-
-    stringstream ss;
     ss << "Fiducials Found: " << contours.size() << endl;
     log(ss.str());
 
@@ -226,6 +205,7 @@ int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
                          int* numFiducials,
                          float* coords)
 {
+	log(string("1\n"));
     int ret;
     for(unsigned int i=0; i<maxAttempts; i++){
         ret = attempt_find_fiducial(imgPtr, imgLineWidth,

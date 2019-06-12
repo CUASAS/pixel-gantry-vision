@@ -11,15 +11,9 @@
 #include <cmath>
 #include <cstdlib>
 #include "utils.h"
+#include "gVision.h"
 
 #define MAX_PATH_LENGTH 100
-
-extern "C" __declspec(dllexport) 
-int __cdecl get_safe_path(const char* filename,
-                          const char* start_label,
-                          const char* end_label,
-                          int* num_points,
-                          float* coordinate_list);
 
 class Point {
 public:
@@ -197,7 +191,10 @@ __declspec(dllexport) int __cdecl get_safe_path(const char* filename,
                                                 const char* end_label,
                                                 int* num_points,
                                                 float* coordinate_list) {
-    int& N = *num_points;
+	std::stringstream ss;
+	ss << "I am a log file, baby!\n";
+	log(ss.str());
+	int& N = *num_points;
     std::string from(start_label);
     std::string to(end_label);
 	if (from == "") return 1; // Initial position undefined
