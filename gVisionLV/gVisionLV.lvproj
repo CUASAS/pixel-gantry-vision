@@ -1,5 +1,5 @@
 ﻿<?xml version='1.0' encoding='UTF-8'?>
-<Project Type="Project" LVVersion="19008000">
+<Project Type="Project" LVVersion="11008008">
 	<Property Name="NI.LV.All.SourceOnly" Type="Bool">true</Property>
 	<Item Name="My Computer" Type="My Computer">
 		<Property Name="IOScan.Faults" Type="Str"></Property>
@@ -25,10 +25,8 @@
 		<Item Name="gVisionBin" Type="Folder" URL="../gVisionBin">
 			<Property Name="NI.DISK" Type="Bool">true</Property>
 		</Item>
-		<Item Name="tests" Type="Folder">
-			<Item Name="calc_focus_test.vi" Type="VI" URL="../tests/calc_focus_test.vi"/>
-			<Item Name="find_fiducial_test.vi" Type="VI" URL="../tests/find_fiducial_test.vi"/>
-			<Item Name="safe_move_test.vi" Type="VI" URL="../tests/safe_move_test.vi"/>
+		<Item Name="tests" Type="Folder" URL="../tests">
+			<Property Name="NI.DISK" Type="Bool">true</Property>
 		</Item>
 		<Item Name="Update Binaries.vi" Type="VI" URL="../Update Binaries.vi"/>
 		<Item Name="Dependencies" Type="Dependencies">
@@ -42,7 +40,7 @@
 				<Item Name="NI_AALPro.lvlib" Type="Library" URL="/&lt;vilib&gt;/Analysis/NI_AALPro.lvlib"/>
 				<Item Name="NI_Vision_Development_Module.lvlib" Type="Library" URL="/&lt;vilib&gt;/vision/NI_Vision_Development_Module.lvlib"/>
 			</Item>
-			<Item Name="lvanlys.dll" Type="Document" URL="/&lt;resource&gt;/lvanlys.dll"/>
+			<Item Name="lvanlys.dll" Type="Document" URL="/&lt;libdir&gt;/resource/lvanlys.dll"/>
 			<Item Name="nivision.dll" Type="Document" URL="nivision.dll">
 				<Property Name="NI.PreserveRelativePath" Type="Bool">true</Property>
 			</Item>
@@ -67,7 +65,6 @@
 				<Property Name="Bld_localDestDir" Type="Path">../lv_builds/NI_AB_PROJECTNAME/gVision API</Property>
 				<Property Name="Bld_localDestDirType" Type="Str">relativeToCommon</Property>
 				<Property Name="Bld_previewCacheID" Type="Str">{CA1BE3A6-65CD-4063-8C7F-A2D953D96EEE}</Property>
-				<Property Name="Bld_version.major" Type="Int">1</Property>
 				<Property Name="Destination[0].destName" Type="Str">Destination Directory</Property>
 				<Property Name="Destination[0].path" Type="Path">../lv_builds/NI_AB_PROJECTNAME/gVision API</Property>
 				<Property Name="Destination[0].preserveHierarchy" Type="Bool">true</Property>
