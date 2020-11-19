@@ -2,6 +2,14 @@
 #include "utils.h"
 #include <sstream>
 #include <fstream>
+
+
+std::string log_filedir = "";
+
+void set_log_filedir(std::string& new_log_filedir) {
+    log_filedir = new_log_filedir;
+}
+
 std::vector<std::string> &split(const std::string &s, char delim,
     std::vector<std::string> &elems) {
     std::stringstream ss(s);
@@ -26,13 +34,17 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 
 void log(std::string &data){
-#ifdef GVISION_ENABLE_LOGGING
-    std::ofstream myfile;
-    myfile.open(GVISION_LOG_FILE, std::ios::out | std::ios::app);
+    if (!log_filedir.empty()) {
+        std::ofstream myfile;
+        std::string filename;
+        filename.append(log_filedir);
+        filename.append("\\");
+        filename.append(GVISION_LOG_FILENAME);
+        myfile.open(filename, std::ios::out | std::ios::app);
 
-    myfile << data << std::endl;
-    myfile.close();
-#endif
+        myfile << data << std::endl;
+        myfile.close();
+    }
 }
 void log(std::stringstream &data){
 	log(data.str());

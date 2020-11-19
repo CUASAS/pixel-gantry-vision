@@ -193,19 +193,25 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
 }
 
 __declspec(dllexport)
-int __cdecl find_fiducial(char* imgPtr, int imgLineWidth,
-                         int imgWidth, int imgHeight,
-                         float shrinkFactor,
-                         int dilateSize,
-                         float sizeMin, float sizeMax,
-                         float arMin, float arMax,
-                         int colorGroups,
-                         int interactive,
-						 int maxAttempts,
-                         int* numFiducials,
-                         float* coords)
+int __cdecl find_fiducial(
+    char* imgPtr,
+    int imgLineWidth,
+    int imgWidth,
+    int imgHeight,
+    float shrinkFactor,
+    int dilateSize,
+    float sizeMin,
+    float sizeMax,
+    float arMin, 
+    float arMax,
+    int colorGroups,
+    int interactive,
+	int maxAttempts,
+    int* numFiducials,
+    float* coords,
+    char* log_filedir)
 {
-	log(string("1\n"));
+    set_log_filedir(string(log_filedir));
     int ret;
     for(unsigned int i=0; i<maxAttempts; i++){
         ret = attempt_find_fiducial(imgPtr, imgLineWidth,
