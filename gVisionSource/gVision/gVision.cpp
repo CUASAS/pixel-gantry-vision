@@ -8,9 +8,6 @@
 #include "stdafx.h"
 #include "utils.h"
 #include "gVision.h"
-#include "opencv2/opencv.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -22,14 +19,8 @@
 
 using namespace std;
 
-void show(cv::Mat img, int interactive){
-    if (interactive==0) return;
-    cv::namedWindow("MyWindow", cv::WINDOW_AUTOSIZE);
-    cv::imshow("MyWindow", img);
-    cv::waitKey(0);
-    cv::destroyWindow("MyWindow");
-}
 
+#define MAX_OBJECTS 20
 
 __declspec(dllexport) int __cdecl calc_focus(char* imgPtr, int imgLineWidth,
                                             int imgWidth, int imgHeight,
@@ -79,6 +70,7 @@ void do_kmeans(cv::Mat &img, int k){
     bestLabels.convertTo(bestLabels, CV_8U);
     img = bestLabels;
 
+	// TODO: Allow for selecting *which* label to use, ie brightest, 2nd brightest, etc
     float maxVal = -1; int foreground = -1;
     for (int i = 0; i < centers.rows; i++){
         float center = centers.at<float>(i);
@@ -109,7 +101,6 @@ struct ContourData{
 typedef pair<vector<cv::Point>,ContourData> contour_t;
 
 vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float arMin, float arMax){
-    float pixels = (float)img.rows * img.cols;
     vector<vector<cv::Point>> contours;
     vector<cv::Vec4i> hierarchy;
     findContours(img.clone(), contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
@@ -117,7 +108,7 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
     vector<contour_t> passContours;
 	stringstream ss;
     for (unsigned int i = 0; i < contours.size(); i++){
-        float area = (float)(contourArea(contours[i]) / pixels);
+        float area = (float)contourArea(contours[i]);
         cv::RotatedRect rr = minAreaRect(contours[i]);
         float ar = float(rr.size.width) / rr.size.height;
 		if(ar<1) ar = 1.0f/ar;
@@ -133,19 +124,32 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
     return passContours;
 }
 
-#define NUM_FIDS 10
-
-int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
-                          int imgWidth, int imgHeight,
-                          float shrinkFactor,
-                          int dilateSize,
-                          float sizeMin, float sizeMax,
-                          float arMin, float arMax,
-                          int colorGroups,
-                          int interactive,
-                          int* numFiducials,
-                          float* coords)  //coords must be a 2*NUM_FIDS element float array
+__declspec(dllexport)
+int __cdecl find_patches(
+    char* imgPtr,
+    int imgLineWidth,
+    int imgWidth,
+    int imgHeight,
+    int shrinkFactor, // increase to speed up routine
+    float fieldOfViewX,  // mm
+    float fieldOfViewY,  // mm
+    int dilateSize,
+    float sizeMin,  // mm^2
+    float sizeMax,  // mm^2
+    float aspectRatioMin, 
+    float aspectRatioMax,
+    int colorGroups,
+    bool debug,
+    char* logFileDir,
+    int* numPatches,
+	float* patchXCoordinates,
+	float* patchYCoordinates,
+	float* patchAspectRatios,
+	float* patchSizes)
 {
+    set_log_filedir(string(logFileDir));
+    set_debug(debug);
+
 	std::stringstream ss;
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
@@ -153,21 +157,22 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
     int cols = (int)(img.cols / shrinkFactor);
     cv::Size s(cols, rows);
     resize(img, img, s);
-    //show(img, interactive);
-    //doBlur(img, dilateSize);
 
     do_kmeans(img, colorGroups);
-    show(img, interactive);
-
-
+    show(img);
     do_dilate(img, dilateSize);
-    show(img, interactive);
+    show(img);
 
-    vector<contour_t> contours = get_contours(img, sizeMin, sizeMax, arMin, arMax);
-    if (contours.size() > NUM_FIDS){
-        contours.resize(NUM_FIDS);
+    float pixelSize = (fieldOfViewX * fieldOfViewY) / (cols * rows);
+    float sizeMinPx = sizeMin / pixelSize;
+    float sizeMaxPx = sizeMax / pixelSize;
+    // Note that Aspect Ratio is not corrected to physical size because this code assumes square pixels
+
+    vector<contour_t> contours = get_contours(img, sizeMinPx, sizeMaxPx, aspectRatioMin, aspectRatioMax);
+    if (contours.size() > MAX_OBJECTS){
+        contours.resize(MAX_OBJECTS);
     }
-    *numFiducials = contours.size();
+    *numPatches = contours.size();
 
     ss << "Fiducials Found: " << contours.size() << endl;
     log(ss.str());
@@ -177,103 +182,83 @@ int attempt_find_fiducial(char* imgPtr, int imgLineWidth,
 		ContourData c = contours[i].second;
 
         cv::Moments mu = moments(fidContour, false);
-        //cv::Point2f centroid(mu.m10 / mu.m00, mu.m01 / mu.m00);
-        float x = (float)(mu.m10 / mu.m00 / cols);
-        float y = (float)(mu.m01 / mu.m00 / rows);
-        //circle(img, centroid, 3, cv::Scalar(255), -1);
-        *(coords + 2 * i) = x;
-        *(coords + 2 * i + 1) = y;
+        float x = (mu.m10 / mu.m00) * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
+        float y = (mu.m01 / mu.m00) * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
+        *(patchXCoordinates + i) = x;
+        *(patchYCoordinates + i) = y;
+        *(patchAspectRatios + i) = c.ar;
+        *(patchSizes + i) = c.area * pixelSize;
 
-        ss << "x:" << x << ", y:" << y << endl;
-		ss << "area: " << c.area << ", ar: " << c.ar << endl << endl;
+        ss << i << ":" << endl;
+        ss << "  x:" << x << ", y:" << y << endl;
+		ss << "  area: " << pixelSize*c.area << ", ar: " << c.ar << endl << endl;
         log(ss);
     }
-
     return 0;
 }
 
-__declspec(dllexport)
-int __cdecl find_fiducial(
-    char* imgPtr,
-    int imgLineWidth,
-    int imgWidth,
-    int imgHeight,
-    float shrinkFactor,
-    int dilateSize,
-    float sizeMin,
-    float sizeMax,
-    float arMin, 
-    float arMax,
-    int colorGroups,
-    int interactive,
-	int maxAttempts,
-    int* numFiducials,
-    float* coords,
-    char* log_filedir)
+
+__declspec(dllexport) int __cdecl find_circles(
+	char* imgPtr, 
+	int imgLineWidth,
+	int imgWidth,
+	int imgHeight,
+    int shrinkFactor, // increase to speed up routine
+    float fieldOfViewX,  // mm
+    float fieldOfViewY,  // mm
+    float minRadius,  // mm
+	float maxRadius,  // mm
+	int houghGradientParam1,
+	int houghGradientParam2, 
+	bool debug,
+	char* log_filedir,
+    int* numCircles,
+	float* circleXCenters,
+	float* circleYCenters,
+	float* circleRadii)
 {
-    set_log_filedir(string(log_filedir));
-    int ret;
-    for(unsigned int i=0; i<maxAttempts; i++){
-        ret = attempt_find_fiducial(imgPtr, imgLineWidth,
-                                    imgWidth, imgHeight, shrinkFactor, dilateSize,
-                                    sizeMin, sizeMax, arMin, arMax,
-                                    colorGroups, interactive, numFiducials, coords);
-        if (*numFiducials != 0) return ret;
-    }
-    return ret;
-}
+	set_log_filedir(string(log_filedir));
+    set_debug(debug);
 
+	cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
+    int rows = (int)(img.rows / shrinkFactor);
+    int cols = (int)(img.cols / shrinkFactor);
+    cv::Size s(cols, rows);
+    resize(img, img, s);
 
-__declspec(dllexport)
-void __cdecl fit_focus(unsigned int num_measurements,
-                       double* focus_values,
-                       double* heights,
-                       double* mean,
-                       double* stdev){
-    stringstream ss;
-    ss << "Fitting Focus of " << num_measurements << " datapoints\n";
-    ss << "height\tfocus\n";
-    for(unsigned int i=0; i<num_measurements; i++){
-        ss << heights[i] << "\t" << focus_values[i] << endl;
-    }
-    log(ss);
-    if (num_measurements==0){
-            *mean  = numeric_limits<double>::quiet_NaN();
-            *stdev = numeric_limits<double>::quiet_NaN();
-            return;
-    }
-    if (num_measurements==1){
-            *mean  = heights[0];
-            *stdev = 0;
-            return;
-    }
-    vector<double> means;
-    vector<double> vals_adj;
+    // This code assumes square pixels
+    float pixelWidth = fieldOfViewX / cols;
+    float minRadiusPx = minRadius / pixelWidth;
+    float maxRadiusPx = maxRadius / pixelWidth;
+	
+	cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
+	vector<cv::Vec3f> circles;     
+	cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, rows / 16, houghGradientParam1, houghGradientParam2, 
+        minRadiusPx, maxRadiusPx);
 
-    double sum = 0;
-    for(unsigned int i=0; i<num_measurements; i++){
-        vals_adj.push_back(log(focus_values[i]));
-        sum += vals_adj[i];
+    *numCircles = circles.size();
+    if (circles.size() > MAX_OBJECTS){
+        circles.resize(MAX_OBJECTS);
     }
-    //Calculate leave-one-out means
-    for(unsigned int j=0; j<num_measurements; j++){
-        means.push_back(0);
-        for(unsigned int i=0; i<num_measurements; i++){
-            if(i!=j) means[j] += heights[i]*vals_adj[i];
-        }
-        means[j] = means[j] / (sum-vals_adj[j]);
-    }
+    *numCircles = circles.size();
 
-    //Calculate mean and variance of means
-    double sumSquares =0;
-    sum = 0;
-    for(unsigned int i=0; i< num_measurements; i++){
-        sumSquares += means[i]*means[i];
-        sum += means[i];
-    }
-    *mean  = sum/num_measurements;
-    *stdev = sqrt(sumSquares - sum*sum)/num_measurements; 
-    ss << "\tfound mean  =" << *mean << endl;
-    ss << "\tfound stdev =" << *stdev << endl;
-    log(ss);
+	for (size_t i = 0; i < circles.size(); i++)
+	{
+		cv::Vec3i c = circles[i];
+
+		cv::Point center = cv::Point(c[0], c[1]);
+		// circle center
+		cv::circle(img, center, 1, cv::Scalar(0, 0, 1), 1, cv::LINE_AA);
+		// circle outline
+		circle(img, center, c[2], cv::Scalar(0, 0, 1), 3, cv::LINE_AA);
+	}
+	show(img);
+
+	for (int i = 0; i < circles.size(); i++) {
+		*(circleXCenters + i) = circles[i][0] * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
+		*(circleYCenters + i) = circles[i][1] * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
+		*(circleRadii + i) = circles[i][2] * pixelWidth;
+	}
+	return 0;
 }

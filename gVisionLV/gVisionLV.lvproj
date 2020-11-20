@@ -1,5 +1,5 @@
 ﻿<?xml version='1.0' encoding='UTF-8'?>
-<Project Type="Project" LVVersion="11008008">
+<Project Type="Project" LVVersion="17008000">
 	<Property Name="NI.LV.All.SourceOnly" Type="Bool">true</Property>
 	<Item Name="My Computer" Type="My Computer">
 		<Property Name="IOScan.Faults" Type="Str"></Property>
@@ -65,6 +65,7 @@
 				<Property Name="Bld_localDestDir" Type="Path">../lv_builds/NI_AB_PROJECTNAME/gVision API</Property>
 				<Property Name="Bld_localDestDirType" Type="Str">relativeToCommon</Property>
 				<Property Name="Bld_previewCacheID" Type="Str">{CA1BE3A6-65CD-4063-8C7F-A2D953D96EEE}</Property>
+				<Property Name="Bld_version.major" Type="Int">1</Property>
 				<Property Name="Destination[0].destName" Type="Str">Destination Directory</Property>
 				<Property Name="Destination[0].path" Type="Path">../lv_builds/NI_AB_PROJECTNAME/gVision API</Property>
 				<Property Name="Destination[0].preserveHierarchy" Type="Bool">true</Property>
