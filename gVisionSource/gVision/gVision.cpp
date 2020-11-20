@@ -70,7 +70,7 @@ void do_kmeans(cv::Mat &img, int k){
     bestLabels.convertTo(bestLabels, CV_8U);
     img = bestLabels;
 
-	// TODO: Allow for selecting *which* label to use, ie brightest, 2nd brightest, etc
+    // TODO: Allow for selecting *which* label to use, ie brightest, 2nd brightest, etc
     float maxVal = -1; int foreground = -1;
     for (int i = 0; i < centers.rows; i++){
         float center = centers.at<float>(i);
@@ -89,13 +89,13 @@ void do_dilate(cv::Mat &img, int size){
 }
 
 struct ContourData{
-	ContourData::ContourData(){}
-	ContourData::ContourData(float area, float ar){
-		this->area = area;
-		this->ar = ar;
-	}
-	float area;
-	float ar;
+    ContourData::ContourData(){}
+    ContourData::ContourData(float area, float ar){
+        this->area = area;
+        this->ar = ar;
+    }
+    float area;
+    float ar;
 };
 
 typedef pair<vector<cv::Point>,ContourData> contour_t;
@@ -106,18 +106,18 @@ vector<contour_t> get_contours(cv::Mat &img, float sizeMin, float sizeMax, float
     findContours(img.clone(), contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     vector<contour_t> passContours;
-	stringstream ss;
+    stringstream ss;
     for (unsigned int i = 0; i < contours.size(); i++){
         float area = (float)contourArea(contours[i]);
         cv::RotatedRect rr = minAreaRect(contours[i]);
         float ar = float(rr.size.width) / rr.size.height;
-		if(ar<1) ar = 1.0f/ar;
-		ss << "area: " << area << ", ar: " << ar << endl << endl;
-		log(ss);
+        if(ar<1) ar = 1.0f/ar;
+        ss << "area: " << area << ", ar: " << ar << endl << endl;
+        log(ss);
         if ((area > sizeMin && area < sizeMax) && (ar > arMin && ar < arMax)){
-			contour_t c;
-			c.first = contours[i];
-			c.second = ContourData(area,ar);
+            contour_t c;
+            c.first = contours[i];
+            c.second = ContourData(area,ar);
             passContours.push_back(c);
         }
     }
@@ -142,15 +142,15 @@ int __cdecl find_patches(
     bool debug,
     char* logFileDir,
     int* numPatches,
-	float* patchXCoordinates,
-	float* patchYCoordinates,
-	float* patchAspectRatios,
-	float* patchSizes)
+    float* patchXCoordinates,
+    float* patchYCoordinates,
+    float* patchAspectRatios,
+    float* patchSizes)
 {
     set_log_filedir(string(logFileDir));
     set_debug(debug);
 
-	std::stringstream ss;
+    std::stringstream ss;
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
     int rows = (int)(img.rows / shrinkFactor);
@@ -179,7 +179,7 @@ int __cdecl find_patches(
 
     for (unsigned int i = 0; i < contours.size(); i++){
         vector<cv::Point> fidContour = contours[i].first;
-		ContourData c = contours[i].second;
+        ContourData c = contours[i].second;
 
         cv::Moments mu = moments(fidContour, false);
         float x = (mu.m10 / mu.m00) * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
@@ -191,7 +191,7 @@ int __cdecl find_patches(
 
         ss << i << ":" << endl;
         ss << "  x:" << x << ", y:" << y << endl;
-		ss << "  area: " << pixelSize*c.area << ", ar: " << c.ar << endl << endl;
+        ss << "  area: " << pixelSize*c.area << ", ar: " << c.ar << endl << endl;
         log(ss);
     }
     return 0;
@@ -199,28 +199,28 @@ int __cdecl find_patches(
 
 
 __declspec(dllexport) int __cdecl find_circles(
-	char* imgPtr, 
-	int imgLineWidth,
-	int imgWidth,
-	int imgHeight,
+    char* imgPtr, 
+    int imgLineWidth,
+    int imgWidth,
+    int imgHeight,
     int shrinkFactor, // increase to speed up routine
     float fieldOfViewX,  // mm
     float fieldOfViewY,  // mm
     float minRadius,  // mm
-	float maxRadius,  // mm
-	int houghGradientParam1,
-	int houghGradientParam2, 
-	bool debug,
-	char* log_filedir,
+    float maxRadius,  // mm
+    int houghGradientParam1,
+    int houghGradientParam2, 
+    bool debug,
+    char* log_filedir,
     int* numCircles,
-	float* circleXCenters,
-	float* circleYCenters,
-	float* circleRadii)
+    float* circleXCenters,
+    float* circleYCenters,
+    float* circleRadii)
 {
-	set_log_filedir(string(log_filedir));
+    set_log_filedir(string(log_filedir));
     set_debug(debug);
 
-	cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
     int rows = (int)(img.rows / shrinkFactor);
     int cols = (int)(img.cols / shrinkFactor);
@@ -231,10 +231,10 @@ __declspec(dllexport) int __cdecl find_circles(
     float pixelWidth = fieldOfViewX / cols;
     float minRadiusPx = minRadius / pixelWidth;
     float maxRadiusPx = maxRadius / pixelWidth;
-	
-	cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
-	vector<cv::Vec3f> circles;     
-	cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, rows / 16, houghGradientParam1, houghGradientParam2, 
+    
+    cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
+    vector<cv::Vec3f> circles;     
+    cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, rows / 16, houghGradientParam1, houghGradientParam2, 
         minRadiusPx, maxRadiusPx);
 
     *numCircles = circles.size();
@@ -243,22 +243,22 @@ __declspec(dllexport) int __cdecl find_circles(
     }
     *numCircles = circles.size();
 
-	for (size_t i = 0; i < circles.size(); i++)
-	{
-		cv::Vec3i c = circles[i];
+    for (size_t i = 0; i < circles.size(); i++)
+    {
+        cv::Vec3i c = circles[i];
 
-		cv::Point center = cv::Point(c[0], c[1]);
-		// circle center
-		cv::circle(img, center, 1, cv::Scalar(0, 0, 1), 1, cv::LINE_AA);
-		// circle outline
-		circle(img, center, c[2], cv::Scalar(0, 0, 1), 3, cv::LINE_AA);
-	}
-	show(img);
+        cv::Point center = cv::Point(c[0], c[1]);
+        // circle center
+        cv::circle(img, center, 1, cv::Scalar(0, 0, 1), 1, cv::LINE_AA);
+        // circle outline
+        circle(img, center, c[2], cv::Scalar(0, 0, 1), 3, cv::LINE_AA);
+    }
+    show(img);
 
-	for (int i = 0; i < circles.size(); i++) {
-		*(circleXCenters + i) = circles[i][0] * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
-		*(circleYCenters + i) = circles[i][1] * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
-		*(circleRadii + i) = circles[i][2] * pixelWidth;
-	}
-	return 0;
+    for (int i = 0; i < circles.size(); i++) {
+        *(circleXCenters + i) = circles[i][0] * (fieldOfViewX / cols) - 0.5*fieldOfViewX;
+        *(circleYCenters + i) = circles[i][1] * (fieldOfViewY / rows) - 0.5*fieldOfViewY;
+        *(circleRadii + i) = circles[i][2] * pixelWidth;
+    }
+    return 0;
 }
