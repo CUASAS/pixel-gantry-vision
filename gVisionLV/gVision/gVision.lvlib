@@ -13,4 +13,5 @@
 	<Item Name="fit_focus_gauss.vi" Type="VI" URL="../fit_focus_gauss.vi"/>
 	<Item Name="find_circles.vi" Type="VI" URL="../find_circles.vi"/>
 	<Item Name="phys_to_img_coords.vi" Type="VI" URL="../phys_to_img_coords.vi"/>
+	<Item Name="Find Fiducial.vi" Type="VI" URL="../Find Fiducial.vi"/>
 </Library>
