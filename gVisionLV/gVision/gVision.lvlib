@@ -9,9 +9,9 @@
 </Property>
 	<Item Name="calc_focus.vi" Type="VI" URL="../calc_focus.vi"/>
 	<Item Name="DLL Path.vi" Type="VI" URL="../DLL Path.vi"/>
-	<Item Name="find_fiducial.vi" Type="VI" URL="../find_fiducial.vi"/>
-	<Item Name="fit_focus.vi" Type="VI" URL="../fit_focus.vi"/>
-	<Item Name="get_safe_path.vi" Type="VI" URL="../get_safe_path.vi"/>
+	<Item Name="find_patches.vi" Type="VI" URL="../find_patches.vi"/>
 	<Item Name="fit_focus_gauss.vi" Type="VI" URL="../fit_focus_gauss.vi"/>
-	<Item Name="helloworld.vi" Type="VI" URL="../helloworld.vi"/>
+	<Item Name="find_circles.vi" Type="VI" URL="../find_circles.vi"/>
+	<Item Name="phys_to_img_coords.vi" Type="VI" URL="../phys_to_img_coords.vi"/>
+	<Item Name="Find Fiducial.vi" Type="VI" URL="../Find Fiducial.vi"/>
 </Library>

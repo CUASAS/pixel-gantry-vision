@@ -30,9 +30,6 @@
     <ClInclude Include="gVision.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="testthing.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -44,13 +41,7 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="safe_move.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="testthing.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
