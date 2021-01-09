@@ -1,9 +1,10 @@
 #include "stdafx.h"
 #include "utils.h"
-#include "testthing.h"
+#include "WBPdetection.h"
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#include <vector>
 
 using namespace std;
 
@@ -15,27 +16,23 @@ void show3(cv::Mat img)
 	cv::destroyWindow("MyWindow");
 }
 
-/*
-void size_filter(cv::Mat img, std::vector<std::vector<cv::Point>> contours, double sizeMin, double sizeMax)
-{
-	int pixels = img.cols * img.rows;
-	for (int i = 0; i < contours.size(); i++)
-	{
-		if(cv::contourArea(contours[i])/pixels < sizeMin)
-		{
-			contours.erase(contours.begin() + i);
-		}
-	}
-}//return the contours between sizeMin and sizeMax
-//instead of eraseing only draw contours with that sizes, erasing is better bec you can use multiple filters easily
-*/
-
-__declspec(dllexport) int __cdecl WBPdetection(char* imgPtr, int imgLineWidth, int imgWidth, int imgHeight, double percent_size, double sizeMin, double sizeMax)
+__declspec(dllexport) int __cdecl WBPdetection(
+	char* imgPtr, 
+	int imgLineWidth, 
+	int imgWidth, 
+	int imgHeight, 
+	double percent_size, 
+	double nominalWidth, 
+	double nominalHeight,
+	double tolerance,
+	double xfov,
+	double yfov)
 {
 	cv::Mat img(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
 	cv::resize(img, img, cv::Size(img.cols * percent_size, img.rows * percent_size), 0, 0);
 	// if you dont want img to get overwritten -> cv::Mat img_clone = image.clone();
 
+	//PREPPING IMAGE FOR DETECTION ALGORITHIM
 	cv::threshold(img, img, 125, 255, cv::THRESH_OTSU);
 	cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
 	cv::erode(img, img, cv::Mat(), cv::Point(-1, -1), 2, 1, 1); //idk what Point does
@@ -45,27 +42,25 @@ __declspec(dllexport) int __cdecl WBPdetection(char* imgPtr, int imgLineWidth, i
 	//,pixel extrapolation method, border value in case of a constant border (this might mean width of line)
 	//border value goes from 0-16 each mean a different thing for example 0 is constant and 1 is replicate
 	//it keeps the border value for 1 so it can replicate the color it erodes or you can do 
-
+	
+	//USE FIND CONTOURS ALGORITHIM
 	vector<vector<cv::Point>> contours; //contours is this double vector where the whole thing is a vector and in that vector are smaller point vectors
 	//study what cv::Point means
 	//comment line structure of double vector
 	//vectors are containers representing arrays that can change size, so it could grow in size as you add elements
 	//so this is a vector of a vector of points which are xy values representing where the contours are. Each element is a different contour
-
-
 	vector<cv::Vec4i> hierarchy; //I believe this is a place holder, except RETR_Tree creates heirarchy
 	cv::findContours(img, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE); //RETR_List says forget about the hierarchy, tree makes heirarchy
 	//Finds all contours by algorithim and makes them this double vector
 
-	//size_filter(img, contours, sizeMin, sizeMax); //size filter but doesnt work
-
+	// could prob combine most of these loops for efficiency but would lose some readability could test how much more efficient
+	//APPROXIMATE CONTOURS TO POLYGONS AND MAKE BOUNDING RECTANGLE
 	vector<vector<cv::Point> > contours_poly( contours.size() ); //creats another double vector but for approximate polynomial
 	//its called contours_poly, not sure what the parenthesise are doing
 	vector<cv::Rect> boundRect( contours.size() ); //same idea for boundRect as for contours_poly
 	//comment line for why it is like boundRect( contours.size() ) with the parenthesis
 	//Rect is a class for rectangles, described by the coordinates of the top-left and the width and height
 	//so i think its a vector/array of class objects that are rectangles
-
 	for( int i = 0; i < contours.size(); i++ ) //loops through the whole contour vector
 	{	approxPolyDP( cv::Mat(contours[i]), contours_poly[i], 3, true ); //for each vector in the contour vector it approximates -> next line
 		//it as a polynomial and then has a contour vector that is assigned to contours_poly[i] corresponding to each contours[i]
@@ -81,12 +76,33 @@ __declspec(dllexport) int __cdecl WBPdetection(char* imgPtr, int imgLineWidth, i
 		//STILL DONT KNOW FOR THIS ONE
 		//
      }
-  /// Draw polygonal contour + bonding rects
-	int pixels = img.cols * img.rows;
+
+	vector<vector<double>> dimRects; //ex [ [w1,h1], [w2,h2], [w3,h3], ...]
+	vector<cv::Point> centerRects; //ex [ [c1], [c2], [c3], ... ]
+	//these are center xy coordinates
+
+	//PUTTING DIMENSIONS OF ALL RECTANGLES IN VECTORS
+	for (int i = 0; i < contours.size(); i++)
+	{
+		cv::Point center = ((boundRect[i].tl().x + boundRect[i].br().x) / 2, (boundRect[i].tl().y + boundRect[i].br().y) / 2); //what about even pixels
+		double rectWidth = (boundRect[i].br().x - boundRect[i].tl().x) * (xfov / img.cols); //might not matter tbh
+		double rectHeight = (boundRect[i].tl().y - boundRect[i].br().y) * (yfov / img.rows);
+		dimRects[i].push_back(rectWidth);
+		dimRects[i].push_back(rectHeight);
+		centerRects.push_back(center);
+	}
+
+	//DEFINING minWidth, etc... FROM tolerance AND nominalWidth
+	double minWidth = nominalWidth * (1 - tolerance);
+	double maxWidth = nominalWidth * (1 + tolerance);
+	double minHeight = nominalHeight * (1 - tolerance);
+	double maxHeight = nominalHeight * (1 + tolerance);
+
+  // DRAWING CONTOURS AND BOUNDING RECTANGLE + CENTER
 	for( int i = 0; i< contours.size(); i++ )
      {
        cv::Scalar color = cv::Scalar(255,255,255); //creates color
-	   if (cv::contourArea(contours_poly[i])/pixels > sizeMin && cv::contourArea(contours_poly[i])/pixels < sizeMax) //if statement for size filter
+	   if (dimRects[i][0] > minWidth && dimRects[i][0] < maxWidth && dimRects[i][1] > minHeight && dimRects[i][1] < maxHeight) 
 	   {
 		   drawContours(img, contours_poly, i, color, 1, 8, vector<cv::Vec4i>(), 0, cv::Point()); //takes the approximated contours as polynomails
 		   // (from the approxPolyDP) dont know what anything past i is doing except for color
@@ -98,8 +114,19 @@ __declspec(dllexport) int __cdecl WBPdetection(char* imgPtr, int imgLineWidth, i
 		   //found the boundingRect using cv::boundingRect algorithim, .tl and .br are functions used to pic out tl and br as points to draw the rectangle
 		//rectangle documentation line
 		//
+		   circle(img, centerRects[i], 1, cv::Scalar(0, 0, 255), 1, cv::LINE_8);
 	   }
 	}
+
+	
+	//make arguments as similiar as possible to find circles except for rectangle parts
+	//find center mm relative to the center of image
+	//labview show an array for the rectangle found
+	//array for the widths and heights and centers(x,y)
+	//choose rectangles so number them in labview prob better
+
+
+
  //filter this by a given size of
 	//be able to output the center and then be able to choose the corners in labview
 	//rect center, heights and widths
