@@ -77,19 +77,20 @@ __declspec(dllexport) int __cdecl WBPdetection(
 		//
      }
 
-	vector<vector<double>> dimRects; //ex [ [w1,h1], [w2,h2], [w3,h3], ...]
-	vector<cv::Point> centerRects; //ex [ [c1], [c2], [c3], ... ]
+	vector<vector<double>> dimRects(contours.size()); //ex [ [w1,h1], [w2,h2], [w3,h3], ...]
+	vector<cv::Point> centerRects(contours.size()); //ex [ [c1], [c2], [c3], ... ]
 	//these are center xy coordinates
 
 	//PUTTING DIMENSIONS OF ALL RECTANGLES IN VECTORS
 	for (int i = 0; i < contours.size(); i++)
 	{
-		cv::Point center = ((boundRect[i].tl().x + boundRect[i].br().x) / 2, (boundRect[i].tl().y + boundRect[i].br().y) / 2); //what about even pixels
-		double rectWidth = (boundRect[i].br().x - boundRect[i].tl().x) * (xfov / img.cols); //might not matter tbh
-		double rectHeight = (boundRect[i].tl().y - boundRect[i].br().y) * (yfov / img.rows);
-		dimRects[i].push_back(rectWidth);
-		dimRects[i].push_back(rectHeight);
+		cv::Point center = (ceil((boundRect[i].tl().x + boundRect[i].br().x) / 2), ceil((boundRect[i].tl().y + boundRect[i].br().y) / 2));
+		dimRects[i].push_back(boundRect[i].width* (xfov / img.cols));
+		//dimRects[i][0] = rectWidth;
+		dimRects[i].push_back(boundRect[i].height * (yfov / img.rows));
+		//dimRects[i][1] = rectHeight;
 		centerRects.push_back(center);
+		//centerRects[i] = center;
 	}
 
 	//DEFINING minWidth, etc... FROM tolerance AND nominalWidth
@@ -102,7 +103,7 @@ __declspec(dllexport) int __cdecl WBPdetection(
 	for( int i = 0; i< contours.size(); i++ )
      {
        cv::Scalar color = cv::Scalar(255,255,255); //creates color
-	   if (dimRects[i][0] > minWidth && dimRects[i][0] < maxWidth && dimRects[i][1] > minHeight && dimRects[i][1] < maxHeight) 
+	   if ((dimRects[i][0] > minWidth && dimRects[i][0] < maxWidth) && (dimRects[i][1] > minHeight && dimRects[i][1] < maxHeight)) 
 	   {
 		   drawContours(img, contours_poly, i, color, 1, 8, vector<cv::Vec4i>(), 0, cv::Point()); //takes the approximated contours as polynomails
 		   // (from the approxPolyDP) dont know what anything past i is doing except for color
@@ -115,7 +116,7 @@ __declspec(dllexport) int __cdecl WBPdetection(
 		//rectangle documentation line
 		//
 		   circle(img, centerRects[i], 1, cv::Scalar(0, 0, 255), 1, cv::LINE_8);
-	   }
+	  }
 	}
 
 	
