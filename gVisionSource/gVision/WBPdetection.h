@@ -19,4 +19,11 @@ extern "C" __declspec(dllexport) int __cdecl WBPdetection(
 	double nominalHeight,
 	double tolerance,
 	double xfov,
-	double yfov);
+	double yfov,
+	int* Nrects,
+	float* rectCenterX,
+	float* rectCenterY,
+	float* rectWidths,
+	float* rectHeights,
+	float* rectCenterXmm,
+	float* rectCenterYmm);
