@@ -140,7 +140,7 @@ int __cdecl find_patches(
     float aspectRatioMax,
     int colorGroups,
     bool debug,
-    char* logFileDir,
+    const char* logFileDir,
     int* numPatches,
     float* patchXCoordinates,
     float* patchYCoordinates,

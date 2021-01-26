@@ -6,11 +6,11 @@
 
 
 bool debug = false;
-void set_debug(bool new_debug) {
+__declspec(dllexport) void __cdecl set_debug(bool new_debug) {
     debug = new_debug;
 }
 
-void show(cv::Mat img) {
+__declspec(dllexport) void __cdecl show(cv::Mat img) {
     if (debug) {
         cv::namedWindow("MyWindow", cv::WINDOW_AUTOSIZE);
         cv::imshow("MyWindow", img);
