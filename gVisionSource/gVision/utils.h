@@ -7,9 +7,9 @@
 
 #define GVISION_LOG_FILENAME "gVisionlog.txt"
 
-void set_debug(bool new_debug);
+extern "C" __declspec(dllexport) void __cdecl set_debug(bool new_debug);
 
-void show(cv::Mat img);
+extern "C" __declspec(dllexport) void __cdecl show(cv::Mat img);
 
 void set_log_filedir(std::string& new_log_filedir);
 
