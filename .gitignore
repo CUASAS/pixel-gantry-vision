@@ -9,3 +9,9 @@ lv_builds/
 
 #Copy of Binaries
 gVisionLV/gVisionBin/*.dll
+
+# Releases
+*.zip
+
+# VS local code
+.vs/

@@ -70,11 +70,11 @@ void test_find_rects(bool debug, const char* logFileDir) {
         img.cols,
         img.rows,
         1,  // shrinkFactor
+        1.400,
+        1.048,
         .45,  // nominalWidth
         .28, // nominalHeight
         0.1, // tolerance
-        1.400,
-        1.048,
         debug,
         logFileDir,
         &numRects,

@@ -14,5 +14,5 @@
 	<Item Name="find_circles.vi" Type="VI" URL="../find_circles.vi"/>
 	<Item Name="phys_to_img_coords.vi" Type="VI" URL="../phys_to_img_coords.vi"/>
 	<Item Name="Find Fiducial.vi" Type="VI" URL="../Find Fiducial.vi"/>
-	<Item Name="WBPdetection.vi" Type="VI" URL="../WBPdetection.vi"/>
+	<Item Name="find_rects.vi" Type="VI" URL="../find_rects.vi"/>
 </Library>

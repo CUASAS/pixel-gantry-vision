@@ -269,11 +269,11 @@ __declspec(dllexport) int __cdecl find_rects(
 	int imgWidth, 
 	int imgHeight, 
     int shrinkFactor, // increase to speed up routine
-	double nominalWidth, 
-	double nominalHeight,
-	double tolerance,
-	double fieldOfViewX,
-	double fieldOfViewY,
+	float fieldOfViewX,
+	float fieldOfViewY,
+	float nominalWidth, 
+	float nominalHeight,
+	float tolerance,
     bool debug,
     const char* logFileDir,
 	int* Nrects,
@@ -284,6 +284,7 @@ __declspec(dllexport) int __cdecl find_rects(
 {
 	set_log_filedir(logFileDir);
 	set_debug(debug);
+    log("Running find_rects");
 	std::stringstream ss;
 
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
@@ -301,6 +302,8 @@ __declspec(dllexport) int __cdecl find_rects(
 	vector<vector<cv::Point>> contours; 
 	vector<cv::Vec4i> hierarchy; 
 	cv::findContours(img, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    ss << "Found " << contours.size() << " contours";
+    log(ss);
 
 	//APPROXIMATE CONTOURS TO POLYGONS AND MAKE BOUNDING RECTANGLE
 	vector<vector<cv::Point> > contoursPoly( contours.size() ); 
@@ -327,13 +330,14 @@ __declspec(dllexport) int __cdecl find_rects(
 
 
 	//DEFINING minWidth, etc... FROM tolerance AND nominalWidth
-	double minWidth = nominalWidth * (1 - tolerance);
-	double maxWidth = nominalWidth * (1 + tolerance);
-	double minHeight = nominalHeight * (1 - tolerance);
-	double maxHeight = nominalHeight * (1 + tolerance);
+	float minWidth = nominalWidth * (1 - tolerance);
+	float maxWidth = nominalWidth * (1 + tolerance);
+	float minHeight = nominalHeight * (1 - tolerance);
+	float maxHeight = nominalHeight * (1 + tolerance);
 
     // DRAWING CONTOURS AND BOUNDING RECTANGLE + CENTER
 	int counter = 0; //counts number of rectangles passing shape requirements
+    log("Contours passing selection:");
 	for( int i = 0; i<contours.size() && counter < MAX_OBJECTS; i++ )
      {
        cv::Scalar color = cv::Scalar(255,255,255); //creates color
@@ -347,7 +351,8 @@ __declspec(dllexport) int __cdecl find_rects(
 		   *(rectHeights + counter) = rectSizes[i].y;
 		   *(rectXCenters + counter) = rectCenters[i].x; 
 		   *(rectYCenters + counter) = rectCenters[i].y;
-		   ss << rectCenters[i].x << ", " << rectCenters[i].y << endl;
+		   ss << "  x=" << rectCenters[i].x << ", y=" << rectCenters[i].y;
+		   ss << ", width=" << rectSizes[i].x << ", height=" << rectSizes[i].y;
 		   log(ss);
 		   counter += 1;
 	  }
@@ -355,5 +360,6 @@ __declspec(dllexport) int __cdecl find_rects(
 	*Nrects = counter;
 
 	show(img);
+    log("Finished find_rects");
 	return 0;
 }
