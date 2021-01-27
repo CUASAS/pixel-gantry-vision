@@ -21,12 +21,12 @@ __declspec(dllexport) void __cdecl show(cv::Mat img) {
 
 
 std::string log_filedir = "";
-void set_log_filedir(std::string& new_log_filedir) {
+void set_log_filedir(const std::string& new_log_filedir) {
     log_filedir = new_log_filedir;
 }
 
 
-void log(std::string& data) {
+void log(const std::string& data) {
     if (!log_filedir.empty()) {
         std::ofstream myfile;
         std::string filename;

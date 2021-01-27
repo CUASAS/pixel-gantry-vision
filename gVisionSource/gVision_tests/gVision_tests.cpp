@@ -7,9 +7,9 @@
 #include "../gVision/gVision.h"
 
 using namespace std;
-void test_find_patches() {
+void test_find_patches(bool debug, const char* logFileDir) {
 //    cv::Mat img = cv::imread("../../gVisionLV/Sample Images/HDI_fid.png");
-    cv::Mat img = cv::imread("C:\\Users\\cfang\\Desktop\\nebraska-silicon-lab\\pixel-gantry-vision\\gVisionLV\\Sample Images\\HDI_fid.png", 
+    cv::Mat img = cv::imread("..\\..\\..\\gVisionLV\\Sample Images\\HDI_fid.png", 
         cv::IMREAD_GRAYSCALE);
     if (img.empty()) {
         cout << "failed to open image" << endl;
@@ -35,8 +35,8 @@ void test_find_patches() {
         0.9,
         1.1,
         2,
-        true,
-        "",
+        debug,
+        logFileDir,
         &numPatches,
         patchXCoordinates,
         patchYCoordinates,
@@ -50,20 +50,50 @@ void test_find_patches() {
     }
 }
 
+void test_find_rects(bool debug, const char* logFileDir) {
+    cv::Mat img = cv::imread("..\\..\\..\\gVisionLV\\Sample Images\\TFPX_bond_pad.png", 
+        cv::IMREAD_GRAYSCALE);
+    if (img.empty()) {
+        cout << "failed to open image" << endl;
+        return;
+    }
+
+    int numRects;
+    float rectXCenters[50];
+    float rectYCenters[50];
+    float rectWidths[50];
+    float rectHeights[50];
+
+    find_rects(
+        (char*)img.ptr(),
+        img.step,
+        img.cols,
+        img.rows,
+        1,  // shrinkFactor
+        .45,  // nominalWidth
+        .28, // nominalHeight
+        0.1, // tolerance
+        1.400,
+        1.048,
+        debug,
+        logFileDir,
+        &numRects,
+        rectXCenters,
+        rectYCenters,
+        rectWidths,
+        rectHeights
+    );
+    cout << "Found " << numRects << " Rects." << endl;
+    for (int i = 0; i < numRects; i++) {
+        cout << i + 1 << ") " << rectXCenters[i] << ", " << rectYCenters[i] << endl;
+        cout << "    "  << rectWidths[i] << ", " << rectHeights[i] << endl;
+    }
+
+}
+
 
 int main()
 {
-    set_debug(true);
-    test_find_patches();
+    //test_find_patches(false);
+    test_find_rects(true, "");
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

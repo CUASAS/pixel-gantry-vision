@@ -9,6 +9,7 @@ extern "C" __declspec(dllexport) int __cdecl calc_focus(
 	float* focus,
 	char* log_filedir);
 
+
 extern "C" __declspec(dllexport) int __cdecl find_patches(
     char* imgPtr,
     int imgLineWidth,
@@ -32,7 +33,6 @@ extern "C" __declspec(dllexport) int __cdecl find_patches(
     float* patchSizes);
 
 
-
 extern "C" __declspec(dllexport) int __cdecl find_circles(
     char* imgPtr,
     int imgLineWidth,
@@ -46,8 +46,28 @@ extern "C" __declspec(dllexport) int __cdecl find_circles(
     int houghGradientParam1,
     int houghGradientParam2,
     bool debug,
-    char* log_filedir,
+    const char* logFileDir,
     int* numCircles,
     float* circleXCenters,
     float* circleYCenters,
     float* circleRadii);
+
+
+extern "C" __declspec(dllexport) int __cdecl find_rects(
+	char* imgPtr,
+	int imgLineWidth,
+	int imgWidth,
+	int imgHeight,
+	int shrinkFactor,
+	double nominalWidth,
+	double nominalHeight,
+	double tolerance,
+	double fieldOfViewX,
+	double fieldOfViewY,
+    bool debug,
+    const char* logFileDir,
+	int* Nrects,
+	float* rectXCenters,
+	float* rectYCenters,
+	float* rectWidths,
+	float* rectHeights);

@@ -147,7 +147,7 @@ int __cdecl find_patches(
     float* patchAspectRatios,
     float* patchSizes)
 {
-    set_log_filedir(string(logFileDir));
+    set_log_filedir(logFileDir);
     set_debug(debug);
 
     std::stringstream ss;
@@ -211,13 +211,13 @@ __declspec(dllexport) int __cdecl find_circles(
     int houghGradientParam1,
     int houghGradientParam2, 
     bool debug,
-    char* log_filedir,
+    const char* logFileDir,
     int* numCircles,
     float* circleXCenters,
     float* circleYCenters,
     float* circleRadii)
 {
-    set_log_filedir(string(log_filedir));
+    set_log_filedir(logFileDir);
     set_debug(debug);
 
     cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
@@ -237,7 +237,6 @@ __declspec(dllexport) int __cdecl find_circles(
     cv::HoughCircles(img, circles, cv::HOUGH_GRADIENT, 1, rows / 16, houghGradientParam1, houghGradientParam2, 
         minRadiusPx, maxRadiusPx);
 
-    *numCircles = circles.size();
     if (circles.size() > MAX_OBJECTS){
         circles.resize(MAX_OBJECTS);
     }
@@ -261,4 +260,100 @@ __declspec(dllexport) int __cdecl find_circles(
         *(circleRadii + i) = circles[i][2] * pixelWidth;
     }
     return 0;
+}
+
+
+__declspec(dllexport) int __cdecl find_rects(
+	char* imgPtr, 
+	int imgLineWidth, 
+	int imgWidth, 
+	int imgHeight, 
+    int shrinkFactor, // increase to speed up routine
+	double nominalWidth, 
+	double nominalHeight,
+	double tolerance,
+	double fieldOfViewX,
+	double fieldOfViewY,
+    bool debug,
+    const char* logFileDir,
+	int* Nrects,
+	float* rectXCenters,
+	float* rectYCenters,
+	float* rectWidths, 
+	float* rectHeights)
+{
+	set_log_filedir(logFileDir);
+	set_debug(debug);
+	std::stringstream ss;
+
+    cv::Mat imgIn(imgHeight, imgWidth, CV_8U, (void*)imgPtr, imgLineWidth);
+    cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
+
+	cv::resize(img, img, cv::Size(img.cols / shrinkFactor, img.rows / shrinkFactor), 0, 0);
+
+	//PREPPING IMAGE FOR DETECTION ALGORITHIM
+	cv::threshold(img, img, 125, 255, cv::THRESH_OTSU);
+	cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
+	cv::erode(img, img, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+	cv::dilate(img, img, cv::Mat(), cv::Point(-1, -1), 1, 1, 1); 
+	
+	//USE FIND CONTOURS ALGORITHIM
+	vector<vector<cv::Point>> contours; 
+	vector<cv::Vec4i> hierarchy; 
+	cv::findContours(img, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+
+	//APPROXIMATE CONTOURS TO POLYGONS AND MAKE BOUNDING RECTANGLE
+	vector<vector<cv::Point> > contoursPoly( contours.size() ); 
+	vector<cv::Rect> boundRects( contours.size() ); //Rect is a class for rectangles, described by the coordinates of the top-left, bottom-right, width and height
+	
+	for( int i = 0; i < contours.size(); i++ ) {
+        approxPolyDP( cv::Mat(contours[i]), contoursPoly[i], 3, true ); //simplifies contours by decreasing the number of vertices, douglas-peucker algorithim
+		boundRects[i] = cv::boundingRect(cv::Mat(contoursPoly[i]));
+     }
+
+	//PUTTING DIMENSIONS OF ALL RECTANGLES IN VECTORS
+	vector<cv::Point2f> rectSizes;
+    vector<cv::Point2f> rectCenters;
+	for (auto& bRect: boundRects) {
+        rectSizes.push_back(
+            cv::Point2f(bRect.width * (fieldOfViewX / img.cols), bRect.height * (fieldOfViewY / img.rows))
+        );
+        float centerXPx = (bRect.tl().x + bRect.br().x) / 2 - img.cols / 2;
+        float centerYPx = (bRect.tl().y + bRect.br().y) / 2 - img.rows / 2;
+		rectCenters.push_back(
+            cv::Point2f(centerXPx * fieldOfViewX/img.cols , centerYPx * fieldOfViewY/img.rows)
+        );
+	}
+
+
+	//DEFINING minWidth, etc... FROM tolerance AND nominalWidth
+	double minWidth = nominalWidth * (1 - tolerance);
+	double maxWidth = nominalWidth * (1 + tolerance);
+	double minHeight = nominalHeight * (1 - tolerance);
+	double maxHeight = nominalHeight * (1 + tolerance);
+
+    // DRAWING CONTOURS AND BOUNDING RECTANGLE + CENTER
+	int counter = 0; //counts number of rectangles passing shape requirements
+	for( int i = 0; i<contours.size() && counter < MAX_OBJECTS; i++ )
+     {
+       cv::Scalar color = cv::Scalar(255,255,255); //creates color
+	   if ((rectSizes[i].x > minWidth && rectSizes[i].x < maxWidth) && (rectSizes[i].y > minHeight && rectSizes[i].y < maxHeight)) 
+	   {
+		   drawContours(img, contoursPoly, i, color, 1, 8, vector<cv::Vec4i>(), 0, cv::Point()); //takes the approximated contours as polynomails
+		   rectangle(img, boundRects[i].tl(), boundRects[i].br(), color, 2, 8, 0); //draws the rectangle fromthe boundRect vector
+
+		   //Copy to output arrays
+		   *(rectWidths + counter) = rectSizes[i].x;
+		   *(rectHeights + counter) = rectSizes[i].y;
+		   *(rectXCenters + counter) = rectCenters[i].x; 
+		   *(rectYCenters + counter) = rectCenters[i].y;
+		   ss << rectCenters[i].x << ", " << rectCenters[i].y << endl;
+		   log(ss);
+		   counter += 1;
+	  }
+	}
+	*Nrects = counter;
+
+	show(img);
+	return 0;
 }
