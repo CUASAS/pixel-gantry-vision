@@ -280,7 +280,8 @@ __declspec(dllexport) int __cdecl find_rects(
 	float* rectXCenters,
 	float* rectYCenters,
 	float* rectWidths, 
-	float* rectHeights)
+	float* rectHeights,
+    float* rectAngles)
 {
 	set_log_filedir(logFileDir);
 	set_debug(debug);
@@ -291,6 +292,8 @@ __declspec(dllexport) int __cdecl find_rects(
     cv::Mat img = imgIn.clone(); //Make a local copy of image to avoid corrupting original image
 
 	cv::resize(img, img, cv::Size(img.cols / shrinkFactor, img.rows / shrinkFactor), 0, 0);
+
+    float pixelSize = fieldOfViewX / img.cols;
 
 	//PREPPING IMAGE FOR DETECTION ALGORITHIM
 	cv::threshold(img, img, 125, 255, cv::THRESH_OTSU);
@@ -307,25 +310,26 @@ __declspec(dllexport) int __cdecl find_rects(
 
 	//APPROXIMATE CONTOURS TO POLYGONS AND MAKE BOUNDING RECTANGLE
 	vector<vector<cv::Point> > contoursPoly( contours.size() ); 
-	vector<cv::Rect> boundRects( contours.size() ); //Rect is a class for rectangles, described by the coordinates of the top-left, bottom-right, width and height
+	vector<cv::RotatedRect> boundRects( contours.size() ); //Rect is a class for rectangles, described by the coordinates of the top-left, bottom-right, width and height
 	
 	for( int i = 0; i < contours.size(); i++ ) {
         approxPolyDP( cv::Mat(contours[i]), contoursPoly[i], 3, true ); //simplifies contours by decreasing the number of vertices, douglas-peucker algorithim
-		boundRects[i] = cv::boundingRect(cv::Mat(contoursPoly[i]));
+		boundRects[i] = cv::minAreaRect(cv::Mat(contoursPoly[i]));
      }
 
 	//PUTTING DIMENSIONS OF ALL RECTANGLES IN VECTORS
 	vector<cv::Point2f> rectSizes;
     vector<cv::Point2f> rectCenters;
+    vector<float> rectAngles_;
 	for (auto& bRect: boundRects) {
-        rectSizes.push_back(
-            cv::Point2f(bRect.width * (fieldOfViewX / img.cols), bRect.height * (fieldOfViewY / img.rows))
-        );
-        float centerXPx = (bRect.tl().x + bRect.br().x) / 2 - img.cols / 2;
-        float centerYPx = (bRect.tl().y + bRect.br().y) / 2 - img.rows / 2;
-		rectCenters.push_back(
-            cv::Point2f(centerXPx * fieldOfViewX/img.cols , centerYPx * fieldOfViewY/img.rows)
-        );
+        float width_mm = bRect.size.width * (fieldOfViewX / img.cols);
+        float height_mm = bRect.size.height * (fieldOfViewY / img.rows);
+        rectSizes.push_back(cv::Point2f(width_mm, height_mm));
+        float centerX_mm = (bRect.center.x - img.cols / 2) * pixelSize;
+        float centerY_mm = (bRect.center.y - img.rows / 2) * pixelSize;
+		rectCenters.push_back(cv::Point2f(centerX_mm, centerY_mm));
+
+        rectAngles_.push_back(bRect.angle);
 	}
 
 
@@ -338,24 +342,47 @@ __declspec(dllexport) int __cdecl find_rects(
     // DRAWING CONTOURS AND BOUNDING RECTANGLE + CENTER
 	int counter = 0; //counts number of rectangles passing shape requirements
     log("Contours passing selection:");
-	for( int i = 0; i<contours.size() && counter < MAX_OBJECTS; i++ )
-     {
+	for( int i = 0; i<contours.size() && counter < MAX_OBJECTS; i++ ) {
        cv::Scalar color = cv::Scalar(255,255,255); //creates color
-	   if ((rectSizes[i].x > minWidth && rectSizes[i].x < maxWidth) && (rectSizes[i].y > minHeight && rectSizes[i].y < maxHeight)) 
-	   {
+
+       bool passes = false;
+       bool rotated = false; // Accounts for rectangle on it's side, in which case height&width are interchanged
+
+	   if ((rectSizes[i].x > minWidth && rectSizes[i].x < maxWidth) && (rectSizes[i].y > minHeight && rectSizes[i].y < maxHeight)) {
+           passes = true;
+	   } else if ((rectSizes[i].x > minHeight && rectSizes[i].x < maxHeight) && (rectSizes[i].y > minWidth && rectSizes[i].y < maxWidth)) {
+           passes = true;
+           rotated = true;
+	   }
+
+       if (passes) {
 		   drawContours(img, contoursPoly, i, color, 1, 8, vector<cv::Vec4i>(), 0, cv::Point()); //takes the approximated contours as polynomails
-		   rectangle(img, boundRects[i].tl(), boundRects[i].br(), color, 2, 8, 0); //draws the rectangle fromthe boundRect vector
+
+           cv::Point2f vertices[4];
+           boundRects[i].points(vertices);
+           for (int i = 0; i < 4; i++) {
+               cv::line(img, vertices[i], vertices[(i + 1) % 4], color, 2);
+           }
 
 		   //Copy to output arrays
-		   *(rectWidths + counter) = rectSizes[i].x;
-		   *(rectHeights + counter) = rectSizes[i].y;
 		   *(rectXCenters + counter) = rectCenters[i].x; 
 		   *(rectYCenters + counter) = rectCenters[i].y;
 		   ss << "  x=" << rectCenters[i].x << ", y=" << rectCenters[i].y;
-		   ss << ", width=" << rectSizes[i].x << ", height=" << rectSizes[i].y;
+           if (rotated) {
+			   *(rectWidths + counter) = rectSizes[i].y;
+			   *(rectHeights + counter) = rectSizes[i].x;
+			   *(rectAngles + counter) = fmodf(rectAngles_[i] + 90, 180.0);
+			   ss << ", width=" << rectSizes[i].y << ", height=" << rectSizes[i].x;
+           }
+           else {
+			   *(rectWidths + counter) = rectSizes[i].x;
+			   *(rectHeights + counter) = rectSizes[i].y;
+			   *(rectAngles + counter) = rectAngles_[i];
+			   ss << ", width=" << rectSizes[i].x << ", height=" << rectSizes[i].y;
+           }
 		   log(ss);
 		   counter += 1;
-	  }
+       }
 	}
 	*Nrects = counter;
 

@@ -51,7 +51,7 @@ void test_find_patches(bool debug, const char* logFileDir) {
 }
 
 void test_find_rects(bool debug, const char* logFileDir) {
-    cv::Mat img = cv::imread("..\\..\\..\\gVisionLV\\Sample Images\\TFPX_bond_pad.png", 
+    cv::Mat img = cv::imread("..\\..\\..\\gVisionLV\\Sample Images\\TFPX_bond_pad_rot.png", 
         cv::IMREAD_GRAYSCALE);
     if (img.empty()) {
         cout << "failed to open image" << endl;
@@ -63,6 +63,7 @@ void test_find_rects(bool debug, const char* logFileDir) {
     float rectYCenters[50];
     float rectWidths[50];
     float rectHeights[50];
+    float rectAngles[50];
 
     find_rects(
         (char*)img.ptr(),
@@ -81,12 +82,13 @@ void test_find_rects(bool debug, const char* logFileDir) {
         rectXCenters,
         rectYCenters,
         rectWidths,
-        rectHeights
+        rectHeights,
+        rectAngles
     );
     cout << "Found " << numRects << " Rects." << endl;
     for (int i = 0; i < numRects; i++) {
-        cout << i + 1 << ") " << rectXCenters[i] << ", " << rectYCenters[i] << endl;
-        cout << "    "  << rectWidths[i] << ", " << rectHeights[i] << endl;
+        cout << i + 1 << ") @" << rectXCenters[i] << ", " << rectYCenters[i] << endl;
+        cout << "    width="  << rectWidths[i] << ", height=" << rectHeights[i] << ", angle=" << rectAngles[i] << endl;
     }
 
 }

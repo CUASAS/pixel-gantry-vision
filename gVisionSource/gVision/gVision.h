@@ -70,4 +70,5 @@ extern "C" __declspec(dllexport) int __cdecl find_rects(
 	float* rectXCenters,
 	float* rectYCenters,
 	float* rectWidths,
-	float* rectHeights);
+	float* rectHeights,
+    float* rectAngles);
