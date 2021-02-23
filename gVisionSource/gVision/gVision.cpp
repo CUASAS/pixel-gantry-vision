@@ -279,6 +279,14 @@ __declspec(dllexport) int __cdecl find_rects(
 	int* Nrects,
 	float* rectXCenters,
 	float* rectYCenters,
+	float* rectXBLCorners,
+	float* rectYBLCorners,
+	float* rectXTLCorners,
+	float* rectYTLCorners,
+	float* rectXTRCorners,
+	float* rectYTRCorners,
+	float* rectXBRCorners,
+	float* rectYBRCorners,
 	float* rectWidths, 
 	float* rectHeights,
     float* rectAngles)
@@ -319,17 +327,45 @@ __declspec(dllexport) int __cdecl find_rects(
 
 	//PUTTING DIMENSIONS OF ALL RECTANGLES IN VECTORS
 	vector<cv::Point2f> rectSizes;
-    vector<cv::Point2f> rectCenters;
+    vector<vector<cv::Point2f> > rectPoints; // center, bl, tl, tr, br
     vector<float> rectAngles_;
 	for (auto& bRect: boundRects) {
-        float width_mm = bRect.size.width * (fieldOfViewX / img.cols);
-        float height_mm = bRect.size.height * (fieldOfViewY / img.rows);
-        rectSizes.push_back(cv::Point2f(width_mm, height_mm));
-        float centerX_mm = (bRect.center.x - img.cols / 2) * pixelSize;
-        float centerY_mm = (bRect.center.y - img.rows / 2) * pixelSize;
-		rectCenters.push_back(cv::Point2f(centerX_mm, centerY_mm));
+        float x, y;
+        vector<cv::Point2f> pts;
+        cv::Point2f recPoints[4];
+        bRect.points(recPoints);
+
+		pts.push_back({ // Center
+            (bRect.center.x - img.cols / 2) * pixelSize,
+            (bRect.center.y - img.rows / 2) * pixelSize
+		});
+
+		pts.push_back({ // Bottom-Left Corner
+            (recPoints[0].x - img.cols / 2) * pixelSize,
+            (recPoints[0].y - img.rows / 2) * pixelSize
+		});
+
+		pts.push_back({ // Top-Left Corner
+            (recPoints[1].x - img.cols / 2) * pixelSize,
+            (recPoints[1].y - img.rows / 2) * pixelSize
+		});
+
+		pts.push_back({ // Top-Right Corner
+            (recPoints[2].x - img.cols / 2) * pixelSize,
+            (recPoints[2].y - img.rows / 2) * pixelSize
+		});
+
+		pts.push_back({ // Bottom-Right Corner
+            (recPoints[3].x - img.cols / 2) * pixelSize,
+            (recPoints[3].y - img.rows / 2) * pixelSize
+		});
+        rectPoints.push_back(pts);
 
         rectAngles_.push_back(bRect.angle);
+        rectSizes.push_back({
+            bRect.size.width * pixelSize,
+			bRect.size.height * pixelSize
+		});
 	}
 
 
@@ -349,8 +385,12 @@ __declspec(dllexport) int __cdecl find_rects(
        bool rotated = false; // Accounts for rectangle on it's side, in which case height&width are interchanged
 
 	   if ((rectSizes[i].x > minWidth && rectSizes[i].x < maxWidth) && (rectSizes[i].y > minHeight && rectSizes[i].y < maxHeight)) {
+           cout << "not rotated" << endl;
+           cout << "angle: " << rectAngles_[i] << endl;
            passes = true;
 	   } else if ((rectSizes[i].x > minHeight && rectSizes[i].x < maxHeight) && (rectSizes[i].y > minWidth && rectSizes[i].y < maxWidth)) {
+           cout << "rotated" << endl;
+           cout << "angle: " << rectAngles_[i] << endl;
            passes = true;
            rotated = true;
 	   }
@@ -365,19 +405,61 @@ __declspec(dllexport) int __cdecl find_rects(
            }
 
 		   //Copy to output arrays
-		   *(rectXCenters + counter) = rectCenters[i].x; 
-		   *(rectYCenters + counter) = rectCenters[i].y;
-		   ss << "  x=" << rectCenters[i].x << ", y=" << rectCenters[i].y;
+		   *(rectXCenters + counter) = rectPoints[i][0].x; 
+		   *(rectYCenters + counter) = rectPoints[i][0].y;
+		   ss << "  x=" << rectPoints[i][0].x << ", y=" << rectPoints[i][0].y;
+
+
+           auto label_corner = [img](cv::Point2f& pt, int col, const char* label) {
+               cv::Scalar color(col*60, col*60, col*60);
+			   cv::circle(img, pt, 15, color, -1);
+               cv::putText(img, label, pt, cv::FONT_HERSHEY_SIMPLEX, 2.0, color, 3);
+           };
+
            if (rotated) {
 			   *(rectWidths + counter) = rectSizes[i].y;
 			   *(rectHeights + counter) = rectSizes[i].x;
 			   *(rectAngles + counter) = fmodf(rectAngles_[i] + 90, 180.0);
+
+               *(rectXBLCorners + counter) = rectPoints[i][2].x;
+               *(rectYBLCorners + counter) = rectPoints[i][2].y;
+               label_corner(vertices[1], 1, "BL");
+
+               *(rectXTLCorners + counter) = rectPoints[i][3].x;
+               *(rectYTLCorners + counter) = rectPoints[i][3].y;
+               label_corner(vertices[2], 2, "TL");
+
+               *(rectXTRCorners + counter) = rectPoints[i][4].x;
+               *(rectYTRCorners + counter) = rectPoints[i][4].y;
+               label_corner(vertices[3], 3, "TR");
+
+               *(rectXBRCorners + counter) = rectPoints[i][1].x;
+               *(rectYBRCorners + counter) = rectPoints[i][1].y;
+               label_corner(vertices[0], 4, "BR");
+
 			   ss << ", width=" << rectSizes[i].y << ", height=" << rectSizes[i].x;
            }
            else {
 			   *(rectWidths + counter) = rectSizes[i].x;
 			   *(rectHeights + counter) = rectSizes[i].y;
-			   *(rectAngles + counter) = rectAngles_[i];
+			   *(rectAngles + counter) = fmodf(rectAngles_[i], 180.0);
+
+               *(rectXBLCorners + counter) = rectPoints[i][1].x;
+               *(rectYBLCorners + counter) = rectPoints[i][1].y;
+               label_corner(vertices[0], 1, "BL");
+
+               *(rectXTLCorners + counter) = rectPoints[i][2].x;
+               *(rectYTLCorners + counter) = rectPoints[i][2].y;
+               label_corner(vertices[1], 2, "TL");
+
+               *(rectXTRCorners + counter) = rectPoints[i][3].x;
+               *(rectYTRCorners + counter) = rectPoints[i][3].y;
+               label_corner(vertices[2], 3, "TR");
+
+               *(rectXBRCorners + counter) = rectPoints[i][4].x;
+               *(rectYBRCorners + counter) = rectPoints[i][4].y;
+               label_corner(vertices[3], 4, "BR");
+
 			   ss << ", width=" << rectSizes[i].x << ", height=" << rectSizes[i].y;
            }
 		   log(ss);
