@@ -1,6 +1,8 @@
 Pixel Gantry Vision
 ===================
 
+**NB: This repository has been superceded by [pixel-gantry-extra](https://github.com/cfangmeier/pixel-gantry-extra)**
+
 This is the C++ code that utilizes OpenCV for calculating focus and identifying fiducial marks in pixel module construction. This code is compiled to a dll and then access through the included LabVIEW adapter VIs.
 
 
